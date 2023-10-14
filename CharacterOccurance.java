@@ -1,10 +1,11 @@
 import java.util.HashMap;
 import java.util.Map;
+import java.util.TreeMap;
 
 public class CharacterOccurance {
 
    void printOccurance(String string) {
-    Map<Character,Integer> map=new HashMap<>();
+    Map<Character,Integer> map=new TreeMap<>();
     for(char c:string.toCharArray()){
       if(map.containsKey(c)){
         int temp=map.get(c);
