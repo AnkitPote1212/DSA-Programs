@@ -1,0 +1,203 @@
+Hibernate is an open-source, object-relational mapping (ORM) framework for Java applications. It provides a framework for mapping Java objects to database tables and vice versa, allowing developers to work with Java objects instead of SQL statements when interacting with databases. Hibernate simplifies the data access layer of applications and abstracts the complexity of database interactions.
+
+Here are some key aspects and features of Hibernate:
+
+1. Object-Relational Mapping (ORM):
+   Hibernate maps Java objects to database tables and vice versa, allowing developers to work with Java objects in their applications. It eliminates the need for writing complex SQL queries for database operations.
+
+2. Persistence API:
+   Hibernate provides a powerful and flexible API for performing database operations such as creating, retrieving, updating, and deleting records. It supports both HQL (Hibernate Query Language) and native SQL queries.
+
+3. Automatic Table Generation:
+   Hibernate can automatically generate database schema based on the Java objects (entities) and their relationships, saving developers from writing SQL DDL (Data Definition Language) scripts.
+
+4. Caching:
+   Hibernate supports caching mechanisms to improve performance by reducing the number of database queries. It can cache query results, objects, and collections, allowing faster access to data.
+
+5. Lazy Loading:
+   Hibernate supports lazy loading, which means that it can load data from the database only when it is required. This feature is useful for optimizing performance by loading data on-demand.
+
+6. Transactions and Concurrency:
+   Hibernate manages transactions and provides support for optimistic and pessimistic concurrency control, ensuring data consistency and integrity in multi-user environments.
+
+7. Associations and Relationships:
+   Hibernate supports various types of associations between entities, including one-to-one, one-to-many, many-to-one, and many-to-many relationships. These associations can be mapped using annotations or XML configurations.
+
+8. Integration with Java EE and Spring:
+   Hibernate can be integrated with Java EE applications and Spring Framework, making it a popular choice for enterprise applications. It works seamlessly with Java EE application servers and Spring containers.
+
+9. Validation and Constraints:
+   Hibernate supports bean validation annotations (such as @NotNull, @Size, etc.) for validating data before persisting it to the database. It enforces constraints at the Java object level.
+
+Example of a Hibernate Entity Class:
+java
+Copy code
+@Entity
+@Table(name = "employees")
+public class Employee {
+
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Column(name = "id")
+    private Long id;
+
+    @Column(name = "first_name")
+    private String firstName;
+
+    @Column(name = "last_name")
+    private String lastName;
+
+    // Getters and setters
+
+}
+In this example, the Employee class is annotated with Hibernate annotations. It represents an entity that can be persisted to the database. Hibernate will generate appropriate SQL statements to create, retrieve, update, and delete Employee records in the database.
+
+Overall, Hibernate simplifies database interactions in Java applications, providing a powerful and flexible ORM solution for developers. It is widely used in Java-based enterprise applications to handle data persistence efficiently and reliably.
+
+Cashing:
+
+Cashing is a mechanism to enhance the performance of a application.
+Cashing is used to reduce database queries.
+1.First Level (Session object) (By default)(also know as transactional cache)
+
+Certainly! Let's break down the code and understand how the Hibernate first-level cache (L1 cache) works in this scenario.
+
+Explanation of the Code Flow:
+Controller:
+When you hit the endpoint localhost:8082/home/getCityService, the getCityDetails() method in the controller is invoked.
+java
+Copy code
+@GetMapping("/getCityService")
+public ResponseEntity<CityServiceDetails> getCityDetails() {
+return new ResponseEntity<>(handimanService.getServiceDetails(), HttpStatus.OK);
+}
+Service Layer (handimanService.getServiceDetails()):
+In the service layer, the getServiceDetails() method retrieves city and postal code information from the database using repository methods.
+java
+Copy code
+public CityServiceDetails getServiceDetails() {
+Map<String, List<Long>> cityPincodeMap = new HashMap<>();
+for (CityEntity city : cityRepository.findAll()) {
+List<PostalCode> postalCodeList = pinCodeRepository.findByCity(city);
+List<Long> postalCodeList2 = postalCodeList.stream().map(i -> i.getPostalCode()).collect(Collectors.toList());
+cityPincodeMap.put(city.getCityName(), postalCodeList2);
+serviceRepository.findAll(); // This line fetches all services from the database
+}
+return new CityServiceDetails(cityPincodeMap, serviceRepository.findAll());
+}
+In the getServiceDetails() method, cityRepository.findAll() and pinCodeRepository.findByCity(city) methods fetch data from the database, and serviceRepository.findAll() fetches all services.
+
+Understanding the Impact of First-Level Cache (L1 Cache):
+In Hibernate, the first-level cache (L1 cache) is associated with the session. When you fetch an entity using Hibernate, it is stored in the first-level cache within the current session. If you fetch the same entity again within the same session, Hibernate will return the cached object, avoiding an additional database query.
+
+In the provided code, when you call serviceRepository.findAll() inside the loop, Hibernate fetches all services from the database. However, because you're invoking this method within the same service method and session, Hibernate will cache these service entities in the first-level cache.
+
+If you call serviceRepository.findAll() multiple times within the same session (such as in the loop), subsequent calls will not hit the database. Instead, Hibernate will return the services from the first-level cache, improving performance by reducing database queries.
+
+Please note that first-level cache is limited to the scope of the current Hibernate session. Once the session is closed (typically at the end of the transaction or method execution), the first-level cache is cleared, and subsequent requests will result in database queries again.
+
+In summary, in the provided code, the first-level cache optimizes performance by preventing redundant database queries for entities fetched within the same session, including those entities retrieved within the loop in your getServiceDetails() method.
+
+User
+In this example when session is created and when it is destroyed
+ChatGPT
+In a typical Spring Boot application, the management of Hibernate sessions is handled automatically by Spring's @Transactional annotation. When a method annotated with @Transactional is invoked, Spring opens a Hibernate session, performs the required database operations, and then closes the session when the method completes. This approach ensures that you don't have to explicitly manage the lifecycle of Hibernate sessions, as Spring takes care of it for you.
+
+In your provided example, you have a method getCityDetails() annotated with @GetMapping:
+
+java
+Copy code
+@GetMapping("/getCityService")
+public ResponseEntity<CityServiceDetails> getCityDetails() {
+return new ResponseEntity<>(handimanService.getServiceDetails(), HttpStatus.OK);
+}
+This method is a part of a Spring MVC controller and handles HTTP GET requests to the endpoint /getCityService.
+
+When a request hits this endpoint:
+
+Spring MVC Handling:
+
+Spring MVC intercepts the incoming HTTP request and identifies the corresponding controller method (getCityDetails() in this case).
+Spring initializes a new transactional context for this request, creating a new Hibernate session associated with this transaction.
+Invocation of getCityDetails():
+
+getCityDetails() method is invoked.
+Inside this method, various operations are performed, including database queries and processing logic.
+Transactional Management:
+
+When your service methods are annotated with @Transactional, as implied in your previous code, Spring ensures that these methods operate within a transactional context.
+When you call methods like cityRepository.findAll(), pinCodeRepository.findByCity(city), and serviceRepository.findAll(), they are executed within the same transactional context.
+The Hibernate session associated with this transaction caches the entities loaded during these operations.
+Session Closure:
+
+Once the getCityDetails() method completes execution and the response is sent back to the client, Spring's transaction management system automatically closes the Hibernate session associated with this transaction.
+This session closure typically occurs at the end of the method annotated with @Transactional. Spring handles this closure transparently.
+In summary, the Hibernate session in your example is created and managed by Spring's @Transactional annotation. It is opened at the beginning of the method invocation and automatically closed when the method completes its execution. This automatic management ensures that you don't have to worry about opening or closing Hibernate sessions manually, allowing for efficient and hassle-free database interactions in your Spring Boot application.
+
+2.Second Level Cashing (Session factory)(Manually Enabled)
+-L2 is process cache(External),Cashing across multiple session
+-L2 cashe can be only used by using third party librabries.
+-Use EHCache or OSCache libraries
+also explain level 2 cache and also I want to use level 2 cache in my above code so please provide updated code
+
+ChatGPT
+Sure, let's talk about the second-level cache in Hibernate and how you can enable and use it in your Spring Boot application.
+
+Second-Level Cache in Hibernate:
+Second-level cache is a cache shared by all sessions and transactions within a Hibernate SessionFactory. Unlike the first-level cache, which is tied to a specific session, the second-level cache is application-wide and can be shared across different sessions and transactions.
+
+When an entity or query result set is read from the database, Hibernate stores a copy of the data in the second-level cache. If another session or transaction requests the same entity or query result, Hibernate checks the second-level cache first. If the data is found in the cache, Hibernate avoids hitting the database, improving performance.
+
+Enabling Second-Level Cache in Hibernate (Ehcache Example):
+To enable the second-level cache, you need to choose a caching provider. One popular choice is Ehcache. Here's how you can enable it in your Spring Boot application.
+
+Add Ehcache Dependency:
+First, you need to add the Ehcache dependency to your pom.xml (if you're using Maven) or build.gradle (if you're using Gradle):
+
+Maven:
+
+xml
+Copy code
+<dependency>
+<groupId>org.hibernate</groupId>
+<artifactId>hibernate-ehcache</artifactId>
+</dependency>
+Gradle:
+
+groovy
+Copy code
+implementation 'org.hibernate:hibernate-ehcache'
+Enable Second-Level Cache in application.properties:
+In your application.properties or application.yml, add the following properties to enable the second-level cache and specify the caching provider (Ehcache in this case):
+
+properties
+Copy code
+spring.jpa.properties.hibernate.cache.use_second_level_cache=true
+spring.jpa.properties.hibernate.cache.region.factory_class=org.hibernate.cache.ehcache.EhCacheRegionFactory
+Add @Cacheable Annotation to Entities:
+In the entities you want to cache, add the @Cacheable annotation:
+
+java
+Copy code
+@Entity
+@Cacheable
+public class YourEntity {
+// entity fields, getters, setters
+}
+The @Cacheable annotation indicates that instances of this entity should be cached in the second-level cache.
+
+Use @Transactional in Service Layer:
+Ensure that your service methods are transactional, typically by adding the @Transactional annotation:
+
+java
+Copy code
+@Service
+@Transactional
+public class YourService {
+// service methods
+}
+The @Transactional annotation ensures that your service methods operate within a transactional context, allowing the second-level cache to function properly.
+
+With these configurations in place, Hibernate will use the second-level cache for entities annotated with @Cacheable. When you retrieve entities within a transactional context, Hibernate will check the second-level cache before going to the database, improving the performance of repeated reads.
+
+Please note that configuring and tuning caching for specific use cases can be complex and may require further adjustments to optimize performance. Additionally, different caching providers and strategies can be used based on your application's requirements.
